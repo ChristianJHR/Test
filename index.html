@@ -8,7 +8,7 @@
         :root {
             --common: #a8a8a8;
             --special: #6a9eff;
-            --super-special: #4CAF50; /* Verde como solicitaste */
+            --super-special: #4CAF50; /* Verde confirmado */
             --rare: #ffcc5e;
             --legendary: #ff7e7e;
             --bg-color: #f5f5f5;
@@ -281,7 +281,7 @@
         }
 
         .pet-card.super-special {
-            border: 3px solid var(--super-special); /* Asegurando que use el color correcto */
+            border: 3px solid var(--super-special);
         }
 
         .pet-card.rare {
@@ -313,7 +313,7 @@
         }
 
         .pet-rarity.super-special {
-            background-color: var(--super-special); /* Asegurando que use el color correcto */
+            background-color: var(--super-special);
             color: white;
         }
 
@@ -457,6 +457,31 @@
             margin-bottom: 20px;
         }
 
+        .modal-pet-rarity.common {
+            background-color: var(--common);
+            color: white;
+        }
+
+        .modal-pet-rarity.special {
+            background-color: var(--special);
+            color: white;
+        }
+
+        .modal-pet-rarity.superSpecial {
+            background-color: var(--super-special);
+            color: white;
+        }
+
+        .modal-pet-rarity.rare {
+            background-color: var(--rare);
+            color: #333;
+        }
+
+        .modal-pet-rarity.legendary {
+            background-color: var(--legendary);
+            color: white;
+        }
+
         .modal-close {
             position: absolute;
             top: 10px;
@@ -517,11 +542,19 @@
             border-radius: 10px;
             padding: 15px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .room-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .room-name {
             font-weight: bold;
             margin-bottom: 10px;
+            color: #6a9eff;
         }
 
         .room-pets {
@@ -543,7 +576,12 @@
             justify-content: center;
             align-items: center;
             font-size: 1.2rem;
-            cursor: grab;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .room-pet:hover {
+            transform: scale(1.1);
         }
 
         .add-room-btn {
@@ -665,6 +703,35 @@
         </div>
     </div>
 
+    <div class="modal" id="pet-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="pet-modal-close">&times;</button>
+            <div class="modal-pet" id="selected-pet-emoji">🐶</div>
+            <h3 class="modal-pet-name" id="selected-pet-name">Nombre</h3>
+            <div class="modal-pet-rarity" id="selected-pet-rarity">Común</div>
+            <div class="pet-stats">
+                <div class="pet-stat">
+                    <span class="stat-icon">🍗</span>
+                    <span id="selected-pet-hunger">100%</span>
+                </div>
+                <div class="pet-stat">
+                    <span class="stat-icon">🧼</span>
+                    <span id="selected-pet-cleanliness">100%</span>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar hunger-bar" id="selected-hunger-bar" style="width: 100%"></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar cleanliness-bar" id="selected-cleanliness-bar" style="width: 100%"></div>
+            </div>
+            <div class="pet-actions">
+                <button class="pet-action feed-btn" id="selected-feed-btn">Alimentar</button>
+                <button class="pet-action clean-btn" id="selected-clean-btn">Limpiar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Base de datos de mascotas
         const petsDatabase = {
@@ -716,6 +783,7 @@
         let nextRoomId = 2;
         let hungerIntervals = {};
         let cleanlinessIntervals = {};
+        let currentSelectedPet = null;
 
         // Elementos del DOM
         const coinsDisplay = document.getElementById('coins');
@@ -732,6 +800,19 @@
         const modalPetRarity = document.getElementById('modal-pet-rarity');
         const modalClose = document.querySelector('.modal-close');
         const addRoomBtn = document.getElementById('add-room-btn');
+        
+        // Nuevos elementos del modal de mascotas
+        const petModal = document.getElementById('pet-modal');
+        const petModalClose = document.getElementById('pet-modal-close');
+        const selectedPetEmoji = document.getElementById('selected-pet-emoji');
+        const selectedPetName = document.getElementById('selected-pet-name');
+        const selectedPetRarity = document.getElementById('selected-pet-rarity');
+        const selectedPetHunger = document.getElementById('selected-pet-hunger');
+        const selectedPetCleanliness = document.getElementById('selected-pet-cleanliness');
+        const selectedHungerBar = document.getElementById('selected-hunger-bar');
+        const selectedCleanlinessBar = document.getElementById('selected-cleanliness-bar');
+        const selectedFeedBtn = document.getElementById('selected-feed-btn');
+        const selectedCleanBtn = document.getElementById('selected-clean-btn');
 
         // Mostrar notificación
         function showNotification(message) {
@@ -791,14 +872,39 @@
             modalPet.textContent = pet.emoji;
             modalPetName.textContent = pet.name;
             modalPetRarity.textContent = getRarityName(pet.rarity);
-            modalPetRarity.className = "modal-pet-rarity " + (pet.rarity === "superSpecial" ? "superSpecial" : pet.rarity);
+            
+            // Asegurar que use la clase correcta para el color
+            modalPetRarity.className = "modal-pet-rarity " + 
+                (pet.rarity === "superSpecial" ? "superSpecial" : pet.rarity);
             
             gachaModal.classList.add('active');
         }
 
-        // Cerrar modal
+        // Mostrar modal de mascota seleccionada
+        function showSelectedPetModal(pet) {
+            currentSelectedPet = pet;
+            selectedPetEmoji.textContent = pet.emoji;
+            selectedPetName.textContent = pet.name;
+            selectedPetRarity.textContent = getRarityName(pet.rarity);
+            selectedPetRarity.className = "modal-pet-rarity " + 
+                (pet.rarity === "superSpecial" ? "superSpecial" : pet.rarity);
+            
+            selectedPetHunger.textContent = `${Math.round(pet.hunger)}%`;
+            selectedPetCleanliness.textContent = `${Math.round(pet.cleanliness)}%`;
+            selectedHungerBar.style.width = `${pet.hunger}%`;
+            selectedCleanlinessBar.style.width = `${pet.cleanliness}%`;
+            
+            // Actualizar estado de los botones
+            selectedFeedBtn.disabled = pet.hunger >= 100;
+            selectedCleanBtn.disabled = pet.cleanliness >= 100;
+            
+            petModal.classList.add('active');
+        }
+
+        // Cerrar modales
         function closeModal() {
             gachaModal.classList.remove('active');
+            petModal.classList.remove('active');
         }
 
         // Obtener nombre de rareza
@@ -889,34 +995,56 @@
             }, 500);
         }
 
-        // Disminuir hambre gradualmente (10% cada 30s)
+        // Disminuir hambre gradualmente (10% cada 30s) con inicio aleatorio
         function startHungerDecrease(petId) {
             if (hungerIntervals[petId]) {
                 clearInterval(hungerIntervals[petId]);
             }
             
-            hungerIntervals[petId] = setInterval(() => {
-                const pet = pets.find(p => p.id === petId);
-                if (pet && pet.hunger > 0) {
-                    pet.hunger = Math.max(0, pet.hunger - 10);
-                    renderPets();
-                }
-            }, 30000); // 30 segundos
+            // Retraso aleatorio entre 0 y 30 segundos
+            const randomDelay = Math.floor(Math.random() * 30000);
+            
+            setTimeout(() => {
+                hungerIntervals[petId] = setInterval(() => {
+                    const pet = pets.find(p => p.id === petId);
+                    if (pet && pet.hunger > 0) {
+                        pet.hunger = Math.max(0, pet.hunger - 10);
+                        
+                        // Actualizar modal si está abierto
+                        if (currentSelectedPet && currentSelectedPet.id === petId) {
+                            showSelectedPetModal(pet);
+                        }
+                        
+                        renderPets();
+                    }
+                }, 30000); // 30 segundos
+            }, randomDelay);
         }
 
-        // Disminuir limpieza gradualmente (10% cada 15s)
+        // Disminuir limpieza gradualmente (10% cada 15s) con inicio aleatorio
         function startCleanlinessDecrease(petId) {
             if (cleanlinessIntervals[petId]) {
                 clearInterval(cleanlinessIntervals[petId]);
             }
             
-            cleanlinessIntervals[petId] = setInterval(() => {
-                const pet = pets.find(p => p.id === petId);
-                if (pet && pet.cleanliness > 0) {
-                    pet.cleanliness = Math.max(0, pet.cleanliness - 10);
-                    renderPets();
-                }
-            }, 15000); // 15 segundos
+            // Retraso aleatorio entre 0 y 15 segundos
+            const randomDelay = Math.floor(Math.random() * 15000);
+            
+            setTimeout(() => {
+                cleanlinessIntervals[petId] = setInterval(() => {
+                    const pet = pets.find(p => p.id === petId);
+                    if (pet && pet.cleanliness > 0) {
+                        pet.cleanliness = Math.max(0, pet.cleanliness - 10);
+                        
+                        // Actualizar modal si está abierto
+                        if (currentSelectedPet && currentSelectedPet.id === petId) {
+                            showSelectedPetModal(pet);
+                        }
+                        
+                        renderPets();
+                    }
+                }, 15000); // 15 segundos
+            }, randomDelay);
         }
 
         // Renderizar mascotas
@@ -971,23 +1099,24 @@
                     startCleanlinessDecrease(pet.id);
                 }
                 
-                // Hacer la tarjeta arrastrable
-                petCard.draggable = true;
-                petCard.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', pet.id);
+                // Event listener para mostrar modal al hacer clic
+                petCard.addEventListener('click', () => {
+                    showSelectedPetModal(pet);
                 });
             });
             
             // Event listeners para alimentar/limpiar
             document.querySelectorAll('.feed-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
                     const petId = parseInt(this.closest('.pet-card').dataset.id);
                     feedPet(petId);
                 });
             });
             
             document.querySelectorAll('.clean-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
                     const petId = parseInt(this.closest('.pet-card').dataset.id);
                     cleanPet(petId);
                 });
@@ -1011,6 +1140,11 @@
                 showNotification(`🍗 ${pet.name} está completamente lleno`);
             }
             
+            // Actualizar modal si está abierto
+            if (currentSelectedPet && currentSelectedPet.id === petId) {
+                showSelectedPetModal(pet);
+            }
+            
             renderPets();
         }
 
@@ -1029,6 +1163,11 @@
                 showNotification(`🧼 ${pet.name} limpiado (+${reward} monedas)`);
             } else {
                 showNotification(`🧼 ${pet.name} está completamente limpio`);
+            }
+            
+            // Actualizar modal si está abierto
+            if (currentSelectedPet && currentSelectedPet.id === petId) {
+                showSelectedPetModal(pet);
             }
             
             renderPets();
@@ -1064,6 +1203,32 @@
                 `;
                 
                 roomsContainer.appendChild(roomCard);
+                
+                // Configurar clic en la habitación
+                roomCard.addEventListener('click', (e) => {
+                    // Solo si no se hizo clic en una mascota específica
+                    if (e.target === roomCard || e.target.classList.contains('room-name')) {
+                        // Mostrar todas las mascotas de esta habitación
+                        if (room.petIds.length > 0) {
+                            const firstPet = pets.find(p => p.id === room.petIds[0]);
+                            if (firstPet) {
+                                showSelectedPetModal(firstPet);
+                            }
+                        }
+                    }
+                });
+                
+                // Configurar clic en mascotas dentro de la habitación
+                roomCard.querySelectorAll('.room-pet').forEach(petElement => {
+                    petElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const petId = parseInt(petElement.dataset.petId);
+                        const pet = pets.find(p => p.id === petId);
+                        if (pet) {
+                            showSelectedPetModal(pet);
+                        }
+                    });
+                });
                 
                 // Configurar zona de drop
                 const dropZone = roomCard.querySelector('.room-pets');
@@ -1123,18 +1288,30 @@
             multiGachaBtn.addEventListener('click', () => playGacha(5));
             gachaButton.addEventListener('click', () => playGacha(1));
             modalClose.addEventListener('click', closeModal);
+            petModalClose.addEventListener('click', closeModal);
             addRoomBtn.addEventListener('click', addNewRoom);
+            
+            // Event listeners para los botones del modal de mascota
+            selectedFeedBtn.addEventListener('click', () => {
+                if (currentSelectedPet) {
+                    feedPet(currentSelectedPet.id);
+                }
+            });
+            
+            selectedCleanBtn.addEventListener('click', () => {
+                if (currentSelectedPet) {
+                    cleanPet(currentSelectedPet.id);
+                }
+            });
             
             // Configurar drag and drop global
             document.addEventListener('dragover', (e) => e.preventDefault());
             
-            // Iniciar disminución de stats con retraso aleatorio
+            // Iniciar disminución de stats con retraso aleatorio para cada mascota
             setTimeout(() => {
                 pets.forEach(pet => {
-                    setTimeout(() => {
-                        startHungerDecrease(pet.id);
-                        startCleanlinessDecrease(pet.id);
-                    }, Math.random() * 10000);
+                    startHungerDecrease(pet.id);
+                    startCleanlinessDecrease(pet.id);
                 });
             }, 1000);
         }
