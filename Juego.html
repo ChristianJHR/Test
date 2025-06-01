@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Pets Gachapon</title>
+    <style>
+        :root {
+            --common: #a8a8a8;
+            --special: #6a9eff;
+            --super-special: #b56aff;
+            --rare: #ffcc5e;
+            --legendary: #ff7e7e;
+            --bg-color: #f5f5f5;
+            --panel-color: #ffffff;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            --text-color: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: var(--panel-color);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .coin-counter {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .coin-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+            background-color: gold;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #ff6b9d;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 2rem;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            gap: 20px;
+        }
+
+        .gacha-section {
+            flex: 1;
+            background-color: var(--panel-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .gacha-machine {
+            width: 300px;
+            height: 400px;
+            background: linear-gradient(145deg, #ff9a9e, #fad0c4);
+            border-radius: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            border: 8px solid #ff6b9d;
+        }
+
+        .gacha-top {
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(145deg, #ff6b9d, #ff8e8e);
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .gacha-glass {
+            width: 90%;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 10px auto;
+            border-radius: 10px;
+            border: 3px solid white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gacha-ball {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, white, #ff6b9d);
+            border-radius: 50%;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: bottom 0.5s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .gacha-ball.rolling {
+            animation: roll 1.5s ease-in-out infinite;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-55%) rotate(20deg); }
+            50% { transform: translateX(-45%) rotate(-20deg); }
+            75% { transform: translateX(-55%) rotate(20deg); }
+        }
+
+        .gacha-button {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at center, gold, #ffd700);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #8b4513;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .gacha-button:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .gacha-button:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+
+        .gacha-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .gacha-option {
+            padding: 10px 15px;
+            background: linear-gradient(145deg, #6a9eff, #4a7dff);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .gacha-option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .gacha-option:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .gacha-option.disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .inventory-section {
+            flex: 1;
+            background-color: var(--panel-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #6a9eff;
+            text-align: center;
+        }
+
+        .pets-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            overflow-y: auto;
+            max-height: 500px;
+            padding: 5px;
+        }
+
+        .pet-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .pet-card.common {
+            border: 3px solid var(--common);
+        }
+
+        .pet-card.special {
+            border: 3px solid var(--special);
+        }
+
+        .pet-card.super-special {
+            border: 3px solid var(--super-special);
+        }
+
+        .pet-card.rare {
+            border: 3px solid var(--rare);
+        }
+
+        .pet-card.legendary {
+            border: 3px solid var(--legendary);
+        }
+
+        .pet-rarity {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 10px;
+        }
+
+        .pet-rarity.common {
+            background-color: var(--common);
+            color: white;
+        }
+
+        .pet-rarity.special {
+            background-color: var(--special);
+            color: white;
+        }
+
+        .pet-rarity.super-special {
+            background-color: var(--super-special);
+            color: white;
+        }
+
+        .pet-rarity.rare {
+            background-color: var(--rare);
+            color: #333;
+        }
+
+        .pet-rarity.legendary {
+            background-color: var(--legendary);
+            color: white;
+        }
+
+        .pet-image {
+            width: 100%;
+            height: 100px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .pet-name {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .pet-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .pet-stat {
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-icon {
+            margin-right: 3px;
+            font-size: 0.9rem;
+        }
+
+        .pet-actions {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 8px;
+        }
+
+        .pet-action {
+            padding: 3px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .feed-btn {
+            background-color: #a8e6cf;
+        }
+
+        .feed-btn:hover {
+            background-color: #7fdfb9;
+        }
+
+        .clean-btn {
+            background-color: #dcedc1;
+        }
+
+        .clean-btn:hover {
+            background-color: #c5e0a8;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-pet {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-pet-name {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .modal-pet-rarity {
+            font-size: 1.2rem;
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+
+        .hunger-bar {
+            background-color: #ff9e7d;
+        }
+
+        .cleanliness-bar {
+            background-color: #7dafff;
+        }
+
+        .rooms-section {
+            margin-top: 20px;
+            background-color: var(--panel-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .rooms-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .room-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .room-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .room-pets {
+            min-height: 100px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .room-pet {
+            width: 40px;
+            height: 40px;
+            background-color: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            cursor: grab;
+        }
+
+        .add-room-btn {
+            background-color: #a8e6cf;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .add-room-btn:hover {
+            background-color: #7fdfb9;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Little Pets Gachapon</h1>
+        <div class="coin-counter">
+            <span class="coin-icon"></span>
+            <span id="coins">100</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <section class="gacha-section">
+            <h2 class="section-title">Máquina Gachapon</h2>
+            <div class="gacha-machine">
+                <div class="gacha-top"></div>
+                <div class="gacha-glass">
+                    <div class="gacha-ball"></div>
+                </div>
+                <button class="gacha-button">Gacha</button>
+            </div>
+            <div class="gacha-options">
+                <button class="gacha-option" id="single-gacha">1 por 10 monedas</button>
+                <button class="gacha-option" id="multi-gacha">4 por 40 monedas</button>
+            </div>
+        </section>
+
+        <section class="inventory-section">
+            <h2 class="section-title">Tus Mascotas</h2>
+            <div class="pets-container" id="pets-container">
+                <!-- Las mascotas aparecerán aquí -->
+            </div>
+        </section>
+    </div>
+
+    <section class="rooms-section">
+        <h2 class="section-title">Habitaciones</h2>
+        <div class="rooms-container" id="rooms-container">
+            <div class="room-card">
+                <div class="room-name">Habitación Principal</div>
+                <div class="room-pets" id="room-1">
+                    <!-- Mascotas en esta habitación -->
+                </div>
+            </div>
+        </div>
+        <button class="add-room-btn" id="add-room-btn">+ Nueva Habitación (100 monedas)</button>
+    </section>
+
+    <div class="modal" id="gacha-modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <div class="modal-pet" id="modal-pet">🐶</div>
+            <h3 class="modal-pet-name" id="modal-pet-name">Nombre</h3>
+            <div class="modal-pet-rarity" id="modal-pet-rarity">Común</div>
+            <p>¡Has obtenido una nueva mascota!</p>
+        </div>
+    </div>
+
+    <script>
+        // Base de datos de mascotas
+        const petsDatabase = {
+            common: [
+                { emoji: "🐶", name: "Perro", baseReward: 1 },
+                { emoji: "🐱", name: "Gato", baseReward: 1 },
+                { emoji: "🐭", name: "Ratón", baseReward: 1 },
+                { emoji: "🐹", name: "Hámster", baseReward: 1 },
+                { emoji: "🐰", name: "Conejo", baseReward: 1 },
+                { emoji: "🦊", name: "Zorro", baseReward: 2 },
+                { emoji: "🐻", name: "Oso", baseReward: 2 },
+                { emoji: "🐼", name: "Panda", baseReward: 2 }
+            ],
+            special: [
+                { emoji: "🐨", name: "Koala", baseReward: 3 },
+                { emoji: "🐯", name: "Tigre", baseReward: 3 },
+                { emoji: "🦁", name: "León", baseReward: 3 },
+                { emoji: "🐮", name: "Vaca", baseReward: 3 },
+                { emoji: "🐷", name: "Cerdo", baseReward: 3 },
+                { emoji: "🐸", name: "Rana", baseReward: 4 }
+            ],
+            superSpecial: [
+                { emoji: "🐙", name: "Pulpo", baseReward: 5 },
+                { emoji: "🦄", name: "Unicornio", baseReward: 6 },
+                { emoji: "🐲", name: "Dragón", baseReward: 7 },
+                { emoji: "🦉", name: "Búho", baseReward: 5 },
+                { emoji: "🦋", name: "Mariposa", baseReward: 5 }
+            ],
+            rare: [
+                { emoji: "🦖", name: "T-Rex", baseReward: 8 },
+                { emoji: "🦕", name: "Brontosaurio", baseReward: 8 },
+                { emoji: "🐉", name: "Serpiente Dragón", baseReward: 9 },
+                { emoji: "🦚", name: "Pavo Real", baseReward: 7 }
+            ],
+            legendary: [
+                { emoji: "🦓", name: "Cebra Mágica", baseReward: 15 },
+                { emoji: "🦒", name: "Jirafa Dorada", baseReward: 15 },
+                { emoji: "🦍", name: "Yeti", baseReward: 20 },
+                { emoji: "🦧", name: "King Kong", baseReward: 25 }
+            ]
+        };
+
+        // Variables del juego
+        let coins = 100;
+        let pets = [];
+        let rooms = [
+            { id: 1, name: "Habitación Principal", petIds: [] }
+        ];
+        let nextRoomId = 2;
+
+        // Elementos del DOM
+        const coinsDisplay = document.getElementById('coins');
+        const petsContainer = document.getElementById('pets-container');
+        const roomsContainer = document.getElementById('rooms-container');
+        const gachaButton = document.querySelector('.gacha-button');
+        const singleGachaBtn = document.getElementById('single-gacha');
+        const multiGachaBtn = document.getElementById('multi-gacha');
+        const gachaBall = document.querySelector('.gacha-ball');
+        const gachaModal = document.getElementById('gacha-modal');
+        const modalPet = document.getElementById('modal-pet');
+        const modalPetName = document.getElementById('modal-pet-name');
+        const modalPetRarity = document.getElementById('modal-pet-rarity');
+        const modalClose = document.querySelector('.modal-close');
+        const addRoomBtn = document.getElementById('add-room-btn');
+
+        // Inicializar el juego
+        function initGame() {
+            updateCoinsDisplay();
+            renderPets();
+            renderRooms();
+            setupEventListeners();
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            gachaButton.addEventListener('click', startGachaAnimation);
+            singleGachaBtn.addEventListener('click', () => playGacha(1));
+            multiGachaBtn.addEventListener('click', () => playGacha(4));
+            modalClose.addEventListener('click', closeModal);
+            addRoomBtn.addEventListener('click', addNewRoom);
+        }
+
+        // Actualizar display de monedas
+        function updateCoinsDisplay() {
+            coinsDisplay.textContent = coins;
+            singleGachaBtn.classList.toggle('disabled', coins < 10);
+            multiGachaBtn.classList.toggle('disabled', coins < 40);
+            addRoomBtn.classList.toggle('disabled', coins < 100);
+        }
+
+        // Animación de la máquina gachapon
+        function startGachaAnimation() {
+            if (coins < 10) return;
+            
+            gachaBall.classList.add('rolling');
+            gachaButton.disabled = true;
+            
+            setTimeout(() => {
+                gachaBall.classList.remove('rolling');
+                gachaButton.disabled = false;
+                
+                // Mostrar opciones de gacha
+                singleGachaBtn.style.display = 'block';
+                multiGachaBtn.style.display = 'block';
+            }, 1500);
+        }
+
+        // Jugar al gachapon
+        function playGacha(count) {
+            const cost = count === 1 ? 10 : 40;
+            
+            if (coins < cost) {
+                alert(`No tienes suficientes monedas. Necesitas ${cost} monedas.`);
+                return;
+            }
+            
+            coins -= cost;
+            updateCoinsDisplay();
+            
+            const newPets = [];
+            for (let i = 0; i < count; i++) {
+                newPets.push(getRandomPet());
+            }
+            
+            pets.push(...newPets);
+            renderPets();
+            
+            // Mostrar el último pet obtenido en el modal
+            if (newPets.length > 0) {
+                showPetModal(newPets[newPets.length - 1]);
+            }
+        }
+
+        // Obtener una mascota aleatoria
+        function getRandomPet() {
+            const rarityRoll = Math.random();
+            let rarity, petPool;
+            
+            if (rarityRoll < 0.5) {
+                rarity = "common";
+                petPool = petsDatabase.common;
+            } else if (rarityRoll < 0.8) {
+                rarity = "special";
+                petPool = petsDatabase.special;
+            } else if (rarityRoll < 0.95) {
+                rarity = "superSpecial";
+                petPool = petsDatabase.superSpecial;
+            } else if (rarityRoll < 0.99) {
+                rarity = "rare";
+                petPool = petsDatabase.rare;
+            } else {
+                rarity = "legendary";
+                petPool = petsDatabase.legendary;
+            }
+            
+            const randomPet = {...petPool[Math.floor(Math.random() * petPool.length)]};
+            randomPet.id = Date.now() + Math.floor(Math.random() * 1000);
+            randomPet.rarity = rarity;
+            randomPet.hunger = 100;
+            randomPet.cleanliness = 100;
+            randomPet.lastFed = Date.now();
+            randomTerminal.lastCleaned = Date.now();
+            
+            return randomPet;
+        }
+
+        // Mostrar modal de mascota obtenida
+        function showPetModal(pet) {
+            modalPet.textContent = pet.emoji;
+            modalPetName.textContent = pet.name;
+            modalPetRarity.textContent = getRarityName(pet.rarity);
+            modalPetRarity.className = "modal-pet-rarity " + pet.rarity;
+            
+            gachaModal.classList.add('active');
+        }
+
+        // Cerrar modal
+        function closeModal() {
+            gachaModal.classList.remove('active');
+        }
+
+        // Obtener nombre de rareza
+        function getRarityName(rarity) {
+            const names = {
+                common: "Común",
+                special: "Especial",
+                superSpecial: "Super Especial",
+                rare: "Raro",
+                legendary: "Legendario"
+            };
+            return names[rarity];
+        }
+
+        // Renderizar mascotas
+        function renderPets() {
+            petsContainer.innerHTML = '';
+            
+            pets.forEach(pet => {
+                const petCard = document.createElement('div');
+                petCard.className = `pet-card ${pet.rarity}`;
+                petCard.dataset.id = pet.id;
+                
+                // Calcular hambre y limpieza basado en el tiempo
+                const hoursSinceFed = (Date.now() - pet.lastFed) / (1000 * 60 * 60);
+                const hoursSinceCleaned = (Date.now() - pet.lastCleaned) / (1000 * 60 * 60);
+                
+                pet.hunger = Math.max(0, 100 - hoursSinceFed * 10);
+                pet.cleanliness = Math.max(0, 100 - hoursSinceCleaned * 8);
+                
+                petCard.innerHTML = `
+                    <div class="pet-rarity ${pet.rarity}">${getRarityName(pet.rarity)}</div>
+                    <div class="pet-image">${pet.emoji}</div>
+                    <div class="pet-name">${pet.name}</div>
+                    <div class="pet-stats">
+                        <div class="pet-stat">
+                            <span class="stat-icon">🍗</span>
+                            <span>${Math.round(pet.hunger)}%</span>
+                        </div>
+                        <div class="pet-stat">
+                            <span class="stat-icon">🧼</span>
+                            <span>${Math.round(pet.cleanliness)}%</span>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar hunger-bar" style="width: ${pet.hunger}%"></div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar cleanliness-bar" style="width: ${pet.cleanliness}%"></div>
+                    </div>
+                    <div class="pet-actions">
+                        <button class="pet-action feed-btn" data-action="feed">Alimentar</button>
+                        <button class="pet-action clean-btn" data-action="clean">Limpiar</button>
+                    </div>
+                `;
+                
+                petsContainer.appendChild(petCard);
+            });
+            
+            // Agregar event listeners a los botones de mascotas
+            document.querySelectorAll('.feed-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const petId = parseInt(this.closest('.pet-card').dataset.id);
+                    feedPet(petId);
+                });
+            });
+            
+            document.querySelectorAll('.clean-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const petId = parseInt(this.closest('.pet-card').dataset.id);
+                    cleanPet(petId);
+                });
+            });
+            
+            // Hacer las mascotas arrastrables
+            document.querySelectorAll('.pet-card').forEach(card => {
+                card.draggable = true;
+                card.addEventListener('dragstart', handleDragStart);
+            });
+        }
+
+        // Alimentar mascota
+        function feedPet(petId) {
+            const pet = pets.find(p => p.id === petId);
+            if (!pet) return;
+            
+            pet.hunger = 100;
+            pet.lastFed = Date.now();
+            
+            // Recompensa por alimentar
+            const reward = calculateReward(pet);
+            coins += reward;
+            updateCoinsDisplay();
+            
+            renderPets();
+            
+            // Mostrar notificación
+            alert(`¡Has alimentado a ${pet.name} y ganaste ${reward} monedas!`);
+        }
+
+        // Limpiar mascota
+        function cleanPet(petId) {
+            const pet = pets.find(p => p.id === petId);
+            if (!pet) return;
+            
+            pet.cleanliness = 100;
+            pet.lastCleaned = Date.now();
+            
+            // Recompensa por limpiar
+            const reward = calculateReward(pet);
+            coins += reward;
+            updateCoinsDisplay();
+            
+            renderPets();
+            
+            // Mostrar notificación
+            alert(`¡Has limpiado a ${pet.name} y ganaste ${reward} monedas!`);
+        }
+
+        // Calcular recompensa
+        function calculateReward(pet) {
+            const rarityMultiplier = {
+                common: 1,
+                special: 1.5,
+                superSpecial: 2,
+                rare: 3,
+                legendary: 5
+            };
+            
+            return Math.round(pet.baseReward * rarityMultiplier[pet.rarity]);
+        }
+
+        // Renderizar habitaciones
+        function renderRooms() {
+            roomsContainer.innerHTML = '';
+            
+            rooms.forEach(room => {
+                const roomCard = document.createElement('div');
+                roomCard.className = 'room-card';
+                roomCard.innerHTML = `
+                    <div class="room-name">${room.name}</div>
+                    <div class="room-pets" id="room-${room.id}" data-room-id="${room.id}">
+                        ${room.petIds.map(petId => {
+                            const pet = pets.find(p => p.id === petId);
+                            if (!pet) return '';
+                            return `<div class="room-pet" draggable="true" data-pet-id="${pet.id}">${pet.emoji}</div>`;
+                        }).join('')}
+                    </div>
+                `;
+                
+                roomsContainer.appendChild(roomCard);
+            });
+            
+            // Configurar zonas de drop
+            document.querySelectorAll('.room-pets').forEach(dropZone => {
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('drop', handleDrop);
+            });
+            
+            // Configurar drag para mascotas en habitaciones
+            document.querySelectorAll('.room-pet').forEach(pet => {
+                pet.addEventListener('dragstart', handleDragStart);
+            });
+        }
+
+        // Manejar inicio de drag
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.petId || e.target.dataset.id);
+        }
+
+        // Manejar drag over
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        // Manejar drop
+        function handleDrop(e) {
+            e.preventDefault();
+            const petId = parseInt(e.dataTransfer.getData('text/plain'));
+            const roomId = parseInt(e.currentTarget.dataset.roomId);
+            
+            // Quitar el pet de cualquier habitación anterior
+            rooms.forEach(room => {
+                room.petIds = room.petIds.filter(id => id !== petId);
+            });
+            
+            // Agregar el pet a la nueva habitación
+            const room = rooms.find(r => r.id === roomId);
+            if (room) {
+                room.petIds.push(petId);
+                renderRooms();
+            }
+        }
+
+        // Añadir nueva habitación
+        function addNewRoom() {
+            if (coins < 100) {
+                alert("Necesitas 100 monedas para comprar una nueva habitación.");
+                return;
+            }
+            
+            coins -= 100;
+            updateCoinsDisplay();
+            
+            rooms.push({
+                id: nextRoomId++,
+                name: `Habitación ${nextRoomId - 1}`,
+                petIds: []
+            });
+            
+            renderRooms();
+        }
+
+        // Iniciar el juego
+        initGame();
+    </script>
+</body>
+</html>
