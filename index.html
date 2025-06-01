@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -122,6 +122,26 @@
             overflow: hidden;
         }
 
+        .gacha-balls-container {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px;
+        }
+
+        .gacha-ball-inside {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle at 30% 30%, white, #ff6b9d);
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
         .gacha-ball {
             position: absolute;
             width: 50px;
@@ -131,9 +151,9 @@
             bottom: -60px;
             left: 50%;
             transform: translateX(-50%);
-            transition: bottom 0.5s ease-in-out;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             z-index: 10;
+            transition: bottom 0.5s ease-in-out;
         }
 
         .gacha-ball.rolling {
@@ -553,6 +573,17 @@
             to { opacity: 0; }
         }
 
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
@@ -575,13 +606,16 @@
             <div class="gacha-machine">
                 <div class="gacha-top"></div>
                 <div class="gacha-glass">
-                    <div class="gacha-ball"></div>
+                    <div class="gacha-balls-container" id="gacha-balls-container">
+                        <!-- Las bolas aparecerán aquí -->
+                    </div>
+                    <div class="gacha-ball" id="gacha-ball"></div>
                 </div>
                 <button class="gacha-button">Gacha</button>
             </div>
             <div class="gacha-options">
                 <button class="gacha-option" id="single-gacha">1 por 10 monedas</button>
-                <button class="gacha-option" id="multi-gacha">4 por 40 monedas</button>
+                <button class="gacha-option" id="multi-gacha">5 por 50 monedas</button>
             </div>
         </section>
 
@@ -665,6 +699,8 @@
             { id: 1, name: "Habitación Principal", petIds: [] }
         ];
         let nextRoomId = 2;
+        let hungerIntervals = {};
+        let cleanlinessIntervals = {};
 
         // Elementos del DOM
         const coinsDisplay = document.getElementById('coins');
@@ -673,7 +709,8 @@
         const gachaButton = document.querySelector('.gacha-button');
         const singleGachaBtn = document.getElementById('single-gacha');
         const multiGachaBtn = document.getElementById('multi-gacha');
-        const gachaBall = document.querySelector('.gacha-ball');
+        const gachaBall = document.getElementById('gacha-ball');
+        const gachaBallsContainer = document.getElementById('gacha-balls-container');
         const gachaModal = document.getElementById('gacha-modal');
         const modalPet = document.getElementById('modal-pet');
         const modalPetName = document.getElementById('modal-pet-name');
@@ -730,7 +767,7 @@
         function updateCoinsDisplay() {
             coinsDisplay.textContent = coins;
             singleGachaBtn.classList.toggle('disabled', coins < 10);
-            multiGachaBtn.classList.toggle('disabled', coins < 40);
+            multiGachaBtn.classList.toggle('disabled', coins < 50);
             addRoomBtn.classList.toggle('disabled', coins < 100);
         }
 
@@ -761,6 +798,43 @@
             return names[rarity];
         }
 
+        // Animación de sacudida para la máquina
+        function shakeMachine() {
+            const machine = document.querySelector('.gacha-machine');
+            machine.classList.add('shake');
+            setTimeout(() => {
+                machine.classList.remove('shake');
+            }, 500);
+        }
+
+        // Mostrar bolas dentro de la máquina
+        function renderBallsInMachine(count) {
+            gachaBallsContainer.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const ball = document.createElement('div');
+                ball.className = 'gacha-ball-inside';
+                gachaBallsContainer.appendChild(ball);
+            }
+        }
+
+        // Animación de lanzar bola
+        function animateBallRelease(count, callback) {
+            const balls = Array.from(gachaBallsContainer.children).slice(0, count);
+            
+            balls.forEach((ball, index) => {
+                setTimeout(() => {
+                    ball.style.transform = 'scale(0)';
+                    ball.style.opacity = '0';
+                    setTimeout(() => {
+                        ball.remove();
+                        if (index === balls.length - 1) {
+                            callback();
+                        }
+                    }, 300);
+                }, index * 300);
+            });
+        }
+
         // Jugar al gachapon
         function playGacha(count) {
             const cost = count * 10;
@@ -773,26 +847,69 @@
             coins -= cost;
             updateCoinsDisplay();
             
-            gachaBall.style.bottom = "-60px";
-            gachaBall.classList.add('rolling');
+            // Sacudir la máquina
+            shakeMachine();
             
+            // Mostrar bolas cayendo
+            renderBallsInMachine(count);
+            
+            // Animación de lanzamiento
             setTimeout(() => {
-                const newPets = [];
-                for (let i = 0; i < count; i++) {
-                    newPets.push(getRandomPet());
+                animateBallRelease(count, () => {
+                    const newPets = [];
+                    for (let i = 0; i < count; i++) {
+                        newPets.push(getRandomPet());
+                    }
+                    
+                    pets.push(...newPets);
+                    renderPets();
+                    renderRooms();
+                    
+                    // Mostrar el último pet obtenido
+                    if (newPets.length > 0) {
+                        showPetModal(newPets[newPets.length - 1]);
+                        showNotification(`🎉 ¡Obtuviste ${count} mascota(s)!`);
+                    }
+                });
+            }, 500);
+        }
+
+        // Disminuir hambre gradualmente (10% cada 30s)
+        function startHungerDecrease(petId) {
+            if (hungerIntervals[petId]) {
+                clearInterval(hungerIntervals[petId]);
+            }
+            
+            hungerIntervals[petId] = setInterval(() => {
+                const pet = pets.find(p => p.id === petId);
+                if (pet) {
+                    pet.hunger = Math.max(0, pet.hunger - 10);
+                    renderPets();
+                    
+                    if (pet.hunger <= 0) {
+                        clearInterval(hungerIntervals[petId]);
+                    }
                 }
-                
-                pets.push(...newPets);
-                renderPets();
-                renderRooms();
-                gachaBall.classList.remove('rolling');
-                
-                // Mostrar el último pet obtenido
-                if (newPets.length > 0) {
-                    showPetModal(newPets[newPets.length - 1]);
-                    showNotification(`🎉 ¡Obtuviste ${count} mascota(s)!`);
+            }, 30000); // 30 segundos
+        }
+
+        // Disminuir limpieza gradualmente (10% cada 15s)
+        function startCleanlinessDecrease(petId) {
+            if (cleanlinessIntervals[petId]) {
+                clearInterval(cleanlinessIntervals[petId]);
+            }
+            
+            cleanlinessIntervals[petId] = setInterval(() => {
+                const pet = pets.find(p => p.id === petId);
+                if (pet) {
+                    pet.cleanliness = Math.max(0, pet.cleanliness - 10);
+                    renderPets();
+                    
+                    if (pet.cleanliness <= 0) {
+                        clearInterval(cleanlinessIntervals[petId]);
+                    }
                 }
-            }, 2000);
+            }, 15000); // 15 segundos
         }
 
         // Renderizar mascotas
@@ -803,13 +920,6 @@
                 const petCard = document.createElement('div');
                 petCard.className = `pet-card ${pet.rarity}`;
                 petCard.dataset.id = pet.id;
-                
-                // Calcular hambre y limpieza basado en el tiempo
-                const hoursSinceFed = (Date.now() - pet.lastFed) / (1000 * 60 * 60);
-                const hoursSinceCleaned = (Date.now() - pet.lastCleaned) / (1000 * 60 * 60);
-                
-                pet.hunger = Math.max(0, 100 - hoursSinceFed * 10);
-                pet.cleanliness = Math.max(0, 100 - hoursSinceCleaned * 8);
                 
                 petCard.innerHTML = `
                     <div class="pet-rarity ${pet.rarity}">${getRarityName(pet.rarity)}</div>
@@ -839,6 +949,10 @@
                 
                 petsContainer.appendChild(petCard);
                 
+                // Iniciar disminución de stats
+                startHungerDecrease(pet.id);
+                startCleanlinessDecrease(pet.id);
+                
                 // Hacer la tarjeta arrastrable
                 petCard.draggable = true;
                 petCard.addEventListener('dragstart', (e) => {
@@ -862,12 +976,12 @@
             });
         }
 
-        // Alimentar mascota
+        // Alimentar mascota (aumenta 10%)
         function feedPet(petId) {
             const pet = pets.find(p => p.id === petId);
             if (!pet) return;
             
-            pet.hunger = 100;
+            pet.hunger = Math.min(100, pet.hunger + 10);
             pet.lastFed = Date.now();
             
             const reward = calculateReward(pet);
@@ -878,12 +992,12 @@
             showNotification(`🍗 ${pet.name} alimentado (+${reward} monedas)`);
         }
 
-        // Limpiar mascota
+        // Limpiar mascota (aumenta 10%)
         function cleanPet(petId) {
             const pet = pets.find(p => p.id === petId);
             if (!pet) return;
             
-            pet.cleanliness = 100;
+            pet.cleanliness = Math.min(100, pet.cleanliness + 10);
             pet.lastCleaned = Date.now();
             
             const reward = calculateReward(pet);
