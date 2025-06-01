@@ -8,7 +8,7 @@
         :root {
             --common: #a8a8a8;
             --special: #6a9eff;
-            --super-special: #b56aff;
+            --super-special: #4CAF50;
             --rare: #ffcc5e;
             --legendary: #ff7e7e;
             --bg-color: #f5f5f5;
@@ -384,12 +384,22 @@
             background-color: #7fdfb9;
         }
 
+        .feed-btn:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+        }
+
         .clean-btn {
             background-color: #dcedc1;
         }
 
         .clean-btn:hover {
             background-color: #c5e0a8;
+        }
+
+        .clean-btn:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
         }
 
         .modal {
@@ -549,6 +559,11 @@
 
         .add-room-btn:hover {
             background-color: #7fdfb9;
+        }
+
+        .add-room-btn.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
 
         .notification {
@@ -882,13 +897,9 @@
             
             hungerIntervals[petId] = setInterval(() => {
                 const pet = pets.find(p => p.id === petId);
-                if (pet) {
+                if (pet && pet.hunger > 0) {
                     pet.hunger = Math.max(0, pet.hunger - 10);
                     renderPets();
-                    
-                    if (pet.hunger <= 0) {
-                        clearInterval(hungerIntervals[petId]);
-                    }
                 }
             }, 30000); // 30 segundos
         }
@@ -901,13 +912,9 @@
             
             cleanlinessIntervals[petId] = setInterval(() => {
                 const pet = pets.find(p => p.id === petId);
-                if (pet) {
+                if (pet && pet.cleanliness > 0) {
                     pet.cleanliness = Math.max(0, pet.cleanliness - 10);
                     renderPets();
-                    
-                    if (pet.cleanliness <= 0) {
-                        clearInterval(cleanlinessIntervals[petId]);
-                    }
                 }
             }, 15000); // 15 segundos
         }
@@ -920,6 +927,9 @@
                 const petCard = document.createElement('div');
                 petCard.className = `pet-card ${pet.rarity}`;
                 petCard.dataset.id = pet.id;
+                
+                const canFeed = pet.hunger < 100;
+                const canClean = pet.cleanliness < 100;
                 
                 petCard.innerHTML = `
                     <div class="pet-rarity ${pet.rarity}">${getRarityName(pet.rarity)}</div>
@@ -942,16 +952,24 @@
                         <div class="progress-bar cleanliness-bar" style="width: ${pet.cleanliness}%"></div>
                     </div>
                     <div class="pet-actions">
-                        <button class="pet-action feed-btn" data-action="feed">Alimentar</button>
-                        <button class="pet-action clean-btn" data-action="clean">Limpiar</button>
+                        <button class="pet-action feed-btn" data-action="feed" ${!canFeed ? 'disabled' : ''}>
+                            ${canFeed ? 'Alimentar' : '¡Lleno!'}
+                        </button>
+                        <button class="pet-action clean-btn" data-action="clean" ${!canClean ? 'disabled' : ''}>
+                            ${canClean ? 'Limpiar' : '¡Limpio!'}
+                        </button>
                     </div>
                 `;
                 
                 petsContainer.appendChild(petCard);
                 
-                // Iniciar disminución de stats
-                startHungerDecrease(pet.id);
-                startCleanlinessDecrease(pet.id);
+                // Iniciar temporizadores si no existen
+                if (!hungerIntervals[pet.id]) {
+                    startHungerDecrease(pet.id);
+                }
+                if (!cleanlinessIntervals[pet.id]) {
+                    startCleanlinessDecrease(pet.id);
+                }
                 
                 // Hacer la tarjeta arrastrable
                 petCard.draggable = true;
@@ -979,33 +997,41 @@
         // Alimentar mascota (aumenta 10%)
         function feedPet(petId) {
             const pet = pets.find(p => p.id === petId);
-            if (!pet) return;
+            if (!pet || pet.hunger >= 100) return;
             
             pet.hunger = Math.min(100, pet.hunger + 10);
             pet.lastFed = Date.now();
             
-            const reward = calculateReward(pet);
-            coins += reward;
-            updateCoinsDisplay();
+            if (pet.hunger < 100) {
+                const reward = calculateReward(pet);
+                coins += reward;
+                updateCoinsDisplay();
+                showNotification(`🍗 ${pet.name} alimentado (+${reward} monedas)`);
+            } else {
+                showNotification(`🍗 ${pet.name} está completamente lleno`);
+            }
             
             renderPets();
-            showNotification(`🍗 ${pet.name} alimentado (+${reward} monedas)`);
         }
 
         // Limpiar mascota (aumenta 10%)
         function cleanPet(petId) {
             const pet = pets.find(p => p.id === petId);
-            if (!pet) return;
+            if (!pet || pet.cleanliness >= 100) return;
             
             pet.cleanliness = Math.min(100, pet.cleanliness + 10);
             pet.lastCleaned = Date.now();
             
-            const reward = calculateReward(pet);
-            coins += reward;
-            updateCoinsDisplay();
+            if (pet.cleanliness < 100) {
+                const reward = calculateReward(pet);
+                coins += reward;
+                updateCoinsDisplay();
+                showNotification(`🧼 ${pet.name} limpiado (+${reward} monedas)`);
+            } else {
+                showNotification(`🧼 ${pet.name} está completamente limpio`);
+            }
             
             renderPets();
-            showNotification(`🧼 ${pet.name} limpiado (+${reward} monedas)`);
         }
 
         // Calcular recompensa
