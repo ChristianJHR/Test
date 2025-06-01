@@ -1127,6 +1127,16 @@
             
             // Configurar drag and drop global
             document.addEventListener('dragover', (e) => e.preventDefault());
+            
+            // Iniciar disminución de stats con retraso aleatorio
+            setTimeout(() => {
+                pets.forEach(pet => {
+                    setTimeout(() => {
+                        startHungerDecrease(pet.id);
+                        startCleanlinessDecrease(pet.id);
+                    }, Math.random() * 10000);
+                });
+            }, 1000);
         }
 
         initGame();
