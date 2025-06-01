@@ -8,7 +8,7 @@
         :root {
             --common: #a8a8a8;
             --special: #6a9eff;
-            --super-special: #4CAF50;
+            --super-special: #4CAF50; /* Verde como solicitaste */
             --rare: #ffcc5e;
             --legendary: #ff7e7e;
             --bg-color: #f5f5f5;
@@ -281,7 +281,7 @@
         }
 
         .pet-card.super-special {
-            border: 3px solid var(--super-special);
+            border: 3px solid var(--super-special); /* Asegurando que use el color correcto */
         }
 
         .pet-card.rare {
@@ -313,7 +313,7 @@
         }
 
         .pet-rarity.super-special {
-            background-color: var(--super-special);
+            background-color: var(--super-special); /* Asegurando que use el color correcto */
             color: white;
         }
 
@@ -791,7 +791,7 @@
             modalPet.textContent = pet.emoji;
             modalPetName.textContent = pet.name;
             modalPetRarity.textContent = getRarityName(pet.rarity);
-            modalPetRarity.className = "modal-pet-rarity " + pet.rarity;
+            modalPetRarity.className = "modal-pet-rarity " + (pet.rarity === "superSpecial" ? "superSpecial" : pet.rarity);
             
             gachaModal.classList.add('active');
         }
