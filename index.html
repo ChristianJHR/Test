@@ -531,6 +531,28 @@
             background-color: #7fdfb9;
         }
 
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+            animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
@@ -659,72 +681,16 @@
         const modalClose = document.querySelector('.modal-close');
         const addRoomBtn = document.getElementById('add-room-btn');
 
-        // Inicializar el juego
-        function initGame() {
-            updateCoinsDisplay();
-            renderPets();
-            renderRooms();
-            setupEventListeners();
-        }
-
-        // Configurar event listeners
-        function setupEventListeners() {
-            gachaButton.addEventListener('click', startGachaAnimation);
-            singleGachaBtn.addEventListener('click', () => playGacha(1));
-            multiGachaBtn.addEventListener('click', () => playGacha(4));
-            modalClose.addEventListener('click', closeModal);
-            addRoomBtn.addEventListener('click', addNewRoom);
-        }
-
-        // Actualizar display de monedas
-        function updateCoinsDisplay() {
-            coinsDisplay.textContent = coins;
-            singleGachaBtn.classList.toggle('disabled', coins < 10);
-            multiGachaBtn.classList.toggle('disabled', coins < 40);
-            addRoomBtn.classList.toggle('disabled', coins < 100);
-        }
-
-        // Animación de la máquina gachapon
-        function startGachaAnimation() {
-            if (coins < 10) return;
-            
-            gachaBall.classList.add('rolling');
-            gachaButton.disabled = true;
+        // Mostrar notificación
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
             
             setTimeout(() => {
-                gachaBall.classList.remove('rolling');
-                gachaButton.disabled = false;
-                
-                // Mostrar opciones de gacha
-                singleGachaBtn.style.display = 'block';
-                multiGachaBtn.style.display = 'block';
-            }, 1500);
-        }
-
-        // Jugar al gachapon
-        function playGacha(count) {
-            const cost = count === 1 ? 10 : 40;
-            
-            if (coins < cost) {
-                alert(`No tienes suficientes monedas. Necesitas ${cost} monedas.`);
-                return;
-            }
-            
-            coins -= cost;
-            updateCoinsDisplay();
-            
-            const newPets = [];
-            for (let i = 0; i < count; i++) {
-                newPets.push(getRandomPet());
-            }
-            
-            pets.push(...newPets);
-            renderPets();
-            
-            // Mostrar el último pet obtenido en el modal
-            if (newPets.length > 0) {
-                showPetModal(newPets[newPets.length - 1]);
-            }
+                notification.remove();
+            }, 3000);
         }
 
         // Obtener una mascota aleatoria
@@ -755,9 +721,17 @@
             randomPet.hunger = 100;
             randomPet.cleanliness = 100;
             randomPet.lastFed = Date.now();
-            randomTerminal.lastCleaned = Date.now();
+            randomPet.lastCleaned = Date.now();
             
             return randomPet;
+        }
+
+        // Actualizar display de monedas
+        function updateCoinsDisplay() {
+            coinsDisplay.textContent = coins;
+            singleGachaBtn.classList.toggle('disabled', coins < 10);
+            multiGachaBtn.classList.toggle('disabled', coins < 40);
+            addRoomBtn.classList.toggle('disabled', coins < 100);
         }
 
         // Mostrar modal de mascota obtenida
@@ -785,6 +759,40 @@
                 legendary: "Legendario"
             };
             return names[rarity];
+        }
+
+        // Jugar al gachapon
+        function playGacha(count) {
+            const cost = count * 10;
+            
+            if (coins < cost) {
+                showNotification(`❌ Necesitas ${cost} monedas`);
+                return;
+            }
+            
+            coins -= cost;
+            updateCoinsDisplay();
+            
+            gachaBall.style.bottom = "-60px";
+            gachaBall.classList.add('rolling');
+            
+            setTimeout(() => {
+                const newPets = [];
+                for (let i = 0; i < count; i++) {
+                    newPets.push(getRandomPet());
+                }
+                
+                pets.push(...newPets);
+                renderPets();
+                renderRooms();
+                gachaBall.classList.remove('rolling');
+                
+                // Mostrar el último pet obtenido
+                if (newPets.length > 0) {
+                    showPetModal(newPets[newPets.length - 1]);
+                    showNotification(`🎉 ¡Obtuviste ${count} mascota(s)!`);
+                }
+            }, 2000);
         }
 
         // Renderizar mascotas
@@ -830,9 +838,15 @@
                 `;
                 
                 petsContainer.appendChild(petCard);
+                
+                // Hacer la tarjeta arrastrable
+                petCard.draggable = true;
+                petCard.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', pet.id);
+                });
             });
             
-            // Agregar event listeners a los botones de mascotas
+            // Event listeners para alimentar/limpiar
             document.querySelectorAll('.feed-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const petId = parseInt(this.closest('.pet-card').dataset.id);
@@ -846,12 +860,6 @@
                     cleanPet(petId);
                 });
             });
-            
-            // Hacer las mascotas arrastrables
-            document.querySelectorAll('.pet-card').forEach(card => {
-                card.draggable = true;
-                card.addEventListener('dragstart', handleDragStart);
-            });
         }
 
         // Alimentar mascota
@@ -862,15 +870,12 @@
             pet.hunger = 100;
             pet.lastFed = Date.now();
             
-            // Recompensa por alimentar
             const reward = calculateReward(pet);
             coins += reward;
             updateCoinsDisplay();
             
             renderPets();
-            
-            // Mostrar notificación
-            alert(`¡Has alimentado a ${pet.name} y ganaste ${reward} monedas!`);
+            showNotification(`🍗 ${pet.name} alimentado (+${reward} monedas)`);
         }
 
         // Limpiar mascota
@@ -881,15 +886,12 @@
             pet.cleanliness = 100;
             pet.lastCleaned = Date.now();
             
-            // Recompensa por limpiar
             const reward = calculateReward(pet);
             coins += reward;
             updateCoinsDisplay();
             
             renderPets();
-            
-            // Mostrar notificación
-            alert(`¡Has limpiado a ${pet.name} y ganaste ${reward} monedas!`);
+            showNotification(`🧼 ${pet.name} limpiado (+${reward} monedas)`);
         }
 
         // Calcular recompensa
@@ -901,7 +903,6 @@
                 rare: 3,
                 legendary: 5
             };
-            
             return Math.round(pet.baseReward * rarityMultiplier[pet.rarity]);
         }
 
@@ -917,60 +918,44 @@
                     <div class="room-pets" id="room-${room.id}" data-room-id="${room.id}">
                         ${room.petIds.map(petId => {
                             const pet = pets.find(p => p.id === petId);
-                            if (!pet) return '';
-                            return `<div class="room-pet" draggable="true" data-pet-id="${pet.id}">${pet.emoji}</div>`;
+                            return pet ? `<div class="room-pet" draggable="true" data-pet-id="${pet.id}">${pet.emoji}</div>` : '';
                         }).join('')}
                     </div>
                 `;
                 
                 roomsContainer.appendChild(roomCard);
-            });
-            
-            // Configurar zonas de drop
-            document.querySelectorAll('.room-pets').forEach(dropZone => {
-                dropZone.addEventListener('dragover', handleDragOver);
-                dropZone.addEventListener('drop', handleDrop);
-            });
-            
-            // Configurar drag para mascotas en habitaciones
-            document.querySelectorAll('.room-pet').forEach(pet => {
-                pet.addEventListener('dragstart', handleDragStart);
+                
+                // Configurar zona de drop
+                const dropZone = roomCard.querySelector('.room-pets');
+                dropZone.addEventListener('dragover', (e) => e.preventDefault());
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const petId = parseInt(e.dataTransfer.getData('text/plain'));
+                    movePetToRoom(petId, room.id);
+                });
             });
         }
 
-        // Manejar inicio de drag
-        function handleDragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.dataset.petId || e.target.dataset.id);
-        }
-
-        // Manejar drag over
-        function handleDragOver(e) {
-            e.preventDefault();
-        }
-
-        // Manejar drop
-        function handleDrop(e) {
-            e.preventDefault();
-            const petId = parseInt(e.dataTransfer.getData('text/plain'));
-            const roomId = parseInt(e.currentTarget.dataset.roomId);
-            
-            // Quitar el pet de cualquier habitación anterior
+        // Mover mascota a habitación
+        function movePetToRoom(petId, roomId) {
+            // Quitar de cualquier habitación anterior
             rooms.forEach(room => {
                 room.petIds = room.petIds.filter(id => id !== petId);
             });
             
-            // Agregar el pet a la nueva habitación
+            // Agregar a la nueva habitación
             const room = rooms.find(r => r.id === roomId);
             if (room) {
                 room.petIds.push(petId);
                 renderRooms();
+                showNotification(`🚚 Mascota movida a ${room.name}`);
             }
         }
 
         // Añadir nueva habitación
         function addNewRoom() {
             if (coins < 100) {
-                alert("Necesitas 100 monedas para comprar una nueva habitación.");
+                showNotification("❌ Necesitas 100 monedas");
                 return;
             }
             
@@ -984,9 +969,26 @@
             });
             
             renderRooms();
+            showNotification("🏠 ¡Nueva habitación desbloqueada!");
         }
 
-        // Iniciar el juego
+        // Inicializar el juego
+        function initGame() {
+            updateCoinsDisplay();
+            renderPets();
+            renderRooms();
+            
+            // Event listeners
+            singleGachaBtn.addEventListener('click', () => playGacha(1));
+            multiGachaBtn.addEventListener('click', () => playGacha(4));
+            gachaButton.addEventListener('click', () => playGacha(1));
+            modalClose.addEventListener('click', closeModal);
+            addRoomBtn.addEventListener('click', addNewRoom);
+            
+            // Configurar drag and drop global
+            document.addEventListener('dragover', (e) => e.preventDefault());
+        }
+
         initGame();
     </script>
 </body>
