@@ -1004,13 +1004,13 @@
             }
             
             // Retraso aleatorio entre 0 y 30 segundos
-            const randomDelay = Math.floor(Math.random() * 30000);
+            const randomDelay = Math.floor(Math.random() * 10000);
             
             setTimeout(() => {
                 hungerIntervals[petId] = setInterval(() => {
                     const pet = pets.find(p => p.id === petId);
                     if (pet && pet.hunger > 0) {
-                        pet.hunger = Math.max(0, pet.hunger - 10);
+                        pet.hunger = Math.max(0, pet.hunger - 5);
                         
                         // Actualizar modal si está abierto
                         if (currentSelectedPet && currentSelectedPet.id === petId) {
@@ -1036,7 +1036,7 @@
                 cleanlinessIntervals[petId] = setInterval(() => {
                     const pet = pets.find(p => p.id === petId);
                     if (pet && pet.cleanliness > 0) {
-                        pet.cleanliness = Math.max(0, pet.cleanliness - 10);
+                        pet.cleanliness = Math.max(0, pet.cleanliness - 5);
                         
                         // Actualizar modal si está abierto
                         if (currentSelectedPet && currentSelectedPet.id === petId) {
@@ -1045,7 +1045,7 @@
                         
                         renderPets();
                     }
-                }, 15000); // 15 segundos
+                }, 45000); // 15 segundos
             }, randomDelay);
         }
 
