@@ -1026,31 +1026,29 @@
         }
 
         // Disminuir limpieza gradualmente (10% cada 15s) con inicio aleatorio
-        function startCleanlinessDecrease(petId) {
-            if (cleanlinessIntervals[petId]) {
-                clearInterval(cleanlinessIntervals[petId]);
-            }
+        function startGlobalCleanlinessDecrease() {
+            clearInterval(globalCleanlinessInterval);
             
             // Retraso aleatorio entre 0 y 15 segundos
-            const randomDelay = Math.floor(Math.random() * 15000);
-            
-            setTimeout(() => {
-                cleanlinessIntervals[petId] = setInterval(() => {
+            globalCleanlinessInterval = setInterval(() => {
+                if (pets.length > 0) {
+                    const petId = cleanlinessDecreaseQueue.shift() || pets[0].id;
                     const pet = pets.find(p => p.id === petId);
+
                     if (pet && pet.cleanliness > 0) {
-                        pet.cleanliness = Math.max(0, pet.cleanliness - 5);
-                        
-                        // Actualizar modal si está abierto
-                        if (currentSelectedPet && currentSelectedPet.id === petId) {
+                        pet.cleanliness = Math.max(0, pet.cleanliness - 1); // Solo 1% por vez
+
+                        if (currentSelectedPet?.id === pet.id) {
                             showSelectedPetModal(pet);
                         }
-                        
+
                         renderPets();
                     }
-                }, 45000); // 15 segundos
-            }, randomDelay);
+                    cleanlinessDecreaseQueue.push(petId);
+                }
+            }, 3000); // Intervalo general de 3 segundos
         }
-
+        
         // Renderizar mascotas
         function renderPets() {
             petsContainer.innerHTML = '';
@@ -1333,12 +1331,8 @@
             document.addEventListener('dragover', (e) => e.preventDefault());
             
             // Iniciar disminución de stats con retraso aleatorio para cada mascota
-            setTimeout(() => {
-                pets.forEach(pet => {
-                    startHungerDecrease(pet.id);
-                    startCleanlinessDecrease(pet.id);
-                });
-            }, 1000);
+            startGlobalHungerDecrease();
+            startGlobalCleanlinessDecrease();
         }
 
         initGame();
