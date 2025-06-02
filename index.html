@@ -780,6 +780,10 @@
         };
 
         // Variables del juego
+        let globalHungerInterval;
+        let globalCleanlinessInterval;
+        let hungerDecreaseQueue = [];
+        let cleanlinessDecreaseQueue = [];
         let coins = 100;
         let pets = [];
         let rooms = [
@@ -997,30 +1001,28 @@
             }, 500);
         }
 
-        // Disminuir hambre gradualmente (10% cada 30s) con inicio aleatorio
-        function startHungerDecrease(petId) {
-            if (hungerIntervals[petId]) {
-                clearInterval(hungerIntervals[petId]);
-            }
+        // Función unificada para el hambre (maneja todas las mascotas en lotes)
+        function startGlobalHungerDecrease() {
+            clearInterval(globalHungerInterval);
             
-            // Retraso aleatorio entre 0 y 30 segundos
-            const randomDelay = Math.floor(Math.random() * 10000);
-            
-            setTimeout(() => {
-                hungerIntervals[petId] = setInterval(() => {
+            globalHungerInterval = setInterval(() => {
+                // Procesa solo 1 mascota cada 2 segundos (configurable)
+                if (pets.length > 0) {
+                    const petId = hungerDecreaseQueue.shift() || pets[0].id;
                     const pet = pets.find(p => p.id === petId);
+
                     if (pet && pet.hunger > 0) {
-                        pet.hunger = Math.max(0, pet.hunger - 5);
-                        
-                        // Actualizar modal si está abierto
-                        if (currentSelectedPet && currentSelectedPet.id === petId) {
+                        pet.hunger = Math.max(0, pet.hunger - 2); // Solo 2% por vez
+
+                        if (currentSelectedPet?.id === pet.id) {
                             showSelectedPetModal(pet);
                         }
-                        
+
                         renderPets();
                     }
-                }, 30000); // 30 segundos
-            }, randomDelay);
+                    hungerDecreaseQueue.push(petId); // Ciclo continuo
+                }
+            }, 2000); // Intervalo general de 2 segundos
         }
 
         // Disminuir limpieza gradualmente (10% cada 15s) con inicio aleatorio
