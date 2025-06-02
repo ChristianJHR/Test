@@ -633,6 +633,19 @@
             animation: slideIn 0.5s;
         }
 
+        .reset-btn {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            padding: 5px 10px;
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
         @keyframes slideIn {
             from { transform: translateX(100%); }
             to { transform: translateX(0); }
@@ -657,6 +670,9 @@
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
+            }
+            .reset-btn {
+                bottom: 60px;
             }
         }
     </style>
@@ -749,6 +765,8 @@
         </div>
     </div>
 
+    <button class="reset-btn" id="reset-btn">Borrar Datos</button>
+
     <script>
         // Base de datos de mascotas
         const petsDatabase = {
@@ -792,6 +810,7 @@
         };
 
         // Variables del juego
+        const SAVE_KEY = 'littlePetsSaveData';
         let coins = 100;
         let pets = [];
         let rooms = [
@@ -799,8 +818,7 @@
         ];
         let nextRoomId = 2;
         let currentSelectedPet = null;
-        
-        // Nuevo sistema de intervalos globales
+        let saveInterval;
         let globalHungerInterval;
         let globalCleanlinessInterval;
         let hungerDecreaseQueue = [];
@@ -833,6 +851,61 @@
         const selectedCleanlinessBar = document.getElementById('selected-cleanliness-bar');
         const selectedFeedBtn = document.getElementById('selected-feed-btn');
         const selectedCleanBtn = document.getElementById('selected-clean-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        // ======================
+        // Sistema de Guardado
+        // ======================
+
+        function saveGame() {
+            const saveData = {
+                coins: coins,
+                pets: pets,
+                rooms: rooms,
+                nextRoomId: nextRoomId,
+                lastSave: new Date().toISOString()
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            console.log('Juego guardado');
+        }
+
+        function loadGame() {
+            const savedData = localStorage.getItem(SAVE_KEY);
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    
+                    // Validar los datos cargados
+                    if (data && data.pets && data.rooms) {
+                        coins = data.coins || 100;
+                        pets = data.pets.map(pet => ({
+                            ...pet,
+                            lastFed: pet.lastFed || Date.now(),
+                            lastCleaned: pet.lastCleaned || Date.now()
+                        }));
+                        rooms = data.rooms || [{ id: 1, name: "Habitación Principal", petIds: [] }];
+                        nextRoomId = data.nextRoomId || 2;
+                        
+                        console.log('Juego cargado correctamente');
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Error cargando partida:', e);
+                }
+            }
+            return false;
+        }
+
+        function resetGameData() {
+            if (confirm('¿Estás seguro de querer borrar todos tus datos? Esto no se puede deshacer.')) {
+                localStorage.removeItem(SAVE_KEY);
+                location.reload();
+            }
+        }
+
+        // ======================
+        // Funciones del Juego
+        // ======================
 
         // Mostrar notificación
         function showNotification(message, isWarning = false) {
@@ -892,6 +965,7 @@
             singleGachaBtn.classList.toggle('disabled', coins < 10);
             multiGachaBtn.classList.toggle('disabled', coins < 50);
             addRoomBtn.classList.toggle('disabled', coins < 100);
+            saveGame(); // Guardar después de actualizar monedas
         }
 
         // Mostrar modal de mascota obtenida
@@ -1007,7 +1081,7 @@
                     }
                     
                     pets.push(...newPets);
-                    resetQueues(); // Actualizar las colas con las nuevas mascotas
+                    resetQueues();
                     renderPets();
                     renderRooms();
                     
@@ -1016,6 +1090,8 @@
                         showPetModal(newPets[newPets.length - 1]);
                         showNotification(`🎉 ¡Obtuviste ${count} mascota(s)!`);
                     }
+                    
+                    saveGame(); // Guardar después de obtener mascotas
                 });
             }, 500);
         }
@@ -1050,6 +1126,7 @@
                         }
                         
                         renderPets();
+                        saveGame(); // Guardar después de cambiar estadísticas
                     }
                     hungerDecreaseQueue.push(petId); // Ciclo continuo
                 }
@@ -1079,6 +1156,7 @@
                         }
                         
                         renderPets();
+                        saveGame(); // Guardar después de cambiar estadísticas
                     }
                     cleanlinessDecreaseQueue.push(petId);
                 }
@@ -1182,6 +1260,7 @@
             }
             
             renderPets();
+            saveGame(); // Guardar después de alimentar
         }
 
         // Limpiar mascota (aumenta 10%)
@@ -1207,6 +1286,7 @@
             }
             
             renderPets();
+            saveGame(); // Guardar después de limpiar
         }
 
         // Calcular recompensa
@@ -1305,6 +1385,7 @@
                 room.petIds.push(petId);
                 renderRooms();
                 showNotification(`🚚 Mascota movida a ${room.name}`);
+                saveGame(); // Guardar después de mover mascota
             }
         }
 
@@ -1326,10 +1407,22 @@
             
             renderRooms();
             showNotification("🏠 ¡Nueva habitación desbloqueada!");
+            saveGame(); // Guardar después de añadir habitación
         }
 
         // Inicializar el juego
         function initGame() {
+            // Intentar cargar partida guardada
+            const loaded = loadGame();
+            
+            if (!loaded) {
+                // Datos iniciales si no hay guardado
+                coins = 100;
+                pets = [];
+                rooms = [{ id: 1, name: "Habitación Principal", petIds: [] }];
+                nextRoomId = 2;
+            }
+
             updateCoinsDisplay();
             renderPets();
             renderRooms();
@@ -1338,6 +1431,9 @@
             startGlobalHungerDecrease();
             startGlobalCleanlinessDecrease();
             
+            // Guardado automático cada 30 segundos
+            saveInterval = setInterval(saveGame, 30000);
+            
             // Event listeners
             singleGachaBtn.addEventListener('click', () => playGacha(1));
             multiGachaBtn.addEventListener('click', () => playGacha(5));
@@ -1345,8 +1441,8 @@
             modalClose.addEventListener('click', closeModal);
             petModalClose.addEventListener('click', closeModal);
             addRoomBtn.addEventListener('click', addNewRoom);
+            resetBtn.addEventListener('click', resetGameData);
             
-            // Event listeners para los botones del modal de mascota
             selectedFeedBtn.addEventListener('click', () => {
                 if (currentSelectedPet) {
                     feedPet(currentSelectedPet.id);
