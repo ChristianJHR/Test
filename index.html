@@ -621,6 +621,18 @@
             animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
         }
 
+        .low-stat-warning {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background-color: #ff9800;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+            animation: slideIn 0.5s;
+        }
+
         @keyframes slideIn {
             from { transform: translateX(100%); }
             to { transform: translateX(0); }
@@ -780,19 +792,20 @@
         };
 
         // Variables del juego
-        let globalHungerInterval;
-        let globalCleanlinessInterval;
-        let hungerDecreaseQueue = [];
-        let cleanlinessDecreaseQueue = [];
         let coins = 100;
         let pets = [];
         let rooms = [
             { id: 1, name: "Habitación Principal", petIds: [] }
         ];
         let nextRoomId = 2;
-        let hungerIntervals = {};
-        let cleanlinessIntervals = {};
         let currentSelectedPet = null;
+        
+        // Nuevo sistema de intervalos globales
+        let globalHungerInterval;
+        let globalCleanlinessInterval;
+        let hungerDecreaseQueue = [];
+        let cleanlinessDecreaseQueue = [];
+        let lowStatWarningShown = false;
 
         // Elementos del DOM
         const coinsDisplay = document.getElementById('coins');
@@ -809,8 +822,6 @@
         const modalPetRarity = document.getElementById('modal-pet-rarity');
         const modalClose = document.querySelector('.modal-close');
         const addRoomBtn = document.getElementById('add-room-btn');
-        
-        // Nuevos elementos del modal de mascotas
         const petModal = document.getElementById('pet-modal');
         const petModalClose = document.getElementById('pet-modal-close');
         const selectedPetEmoji = document.getElementById('selected-pet-emoji');
@@ -824,15 +835,22 @@
         const selectedCleanBtn = document.getElementById('selected-clean-btn');
 
         // Mostrar notificación
-        function showNotification(message) {
+        function showNotification(message, isWarning = false) {
             const notification = document.createElement('div');
-            notification.className = 'notification';
+            notification.className = isWarning ? 'low-stat-warning' : 'notification';
             notification.textContent = message;
             document.body.appendChild(notification);
             
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            if (!isWarning) {
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            } else {
+                setTimeout(() => {
+                    notification.remove();
+                    lowStatWarningShown = false;
+                }, 5000);
+            }
         }
 
         // Obtener una mascota aleatoria
@@ -989,6 +1007,7 @@
                     }
                     
                     pets.push(...newPets);
+                    resetQueues(); // Actualizar las colas con las nuevas mascotas
                     renderPets();
                     renderRooms();
                     
@@ -1001,54 +1020,71 @@
             }, 500);
         }
 
+        // Reiniciar las colas de procesamiento
+        function resetQueues() {
+            hungerDecreaseQueue = pets.map(p => p.id);
+            cleanlinessDecreaseQueue = pets.map(p => p.id);
+        }
+
         // Función unificada para el hambre (maneja todas las mascotas en lotes)
         function startGlobalHungerDecrease() {
             clearInterval(globalHungerInterval);
             
             globalHungerInterval = setInterval(() => {
-                // Procesa solo 1 mascota cada 2 segundos (configurable)
+                // Procesa solo 1 mascota cada 3 segundos (configurable)
                 if (pets.length > 0) {
                     const petId = hungerDecreaseQueue.shift() || pets[0].id;
                     const pet = pets.find(p => p.id === petId);
-
+                    
                     if (pet && pet.hunger > 0) {
                         pet.hunger = Math.max(0, pet.hunger - 2); // Solo 2% por vez
-
+                        
+                        // Mostrar advertencia si la estadística es baja
+                        if (pet.hunger <= 20 && !lowStatWarningShown) {
+                            showNotification(`⚠️ ${pet.name} tiene mucha hambre!`, true);
+                            lowStatWarningShown = true;
+                        }
+                        
                         if (currentSelectedPet?.id === pet.id) {
                             showSelectedPetModal(pet);
                         }
-
+                        
                         renderPets();
                     }
                     hungerDecreaseQueue.push(petId); // Ciclo continuo
                 }
-            }, 2000); // Intervalo general de 2 segundos
+            }, 3000); // Intervalo general de 3 segundos
         }
 
-        // Disminuir limpieza gradualmente (10% cada 15s) con inicio aleatorio
+        // Función unificada para limpieza
         function startGlobalCleanlinessDecrease() {
             clearInterval(globalCleanlinessInterval);
             
-            // Retraso aleatorio entre 0 y 15 segundos
             globalCleanlinessInterval = setInterval(() => {
                 if (pets.length > 0) {
                     const petId = cleanlinessDecreaseQueue.shift() || pets[0].id;
                     const pet = pets.find(p => p.id === petId);
-
+                    
                     if (pet && pet.cleanliness > 0) {
                         pet.cleanliness = Math.max(0, pet.cleanliness - 1); // Solo 1% por vez
-
+                        
+                        // Mostrar advertencia si la estadística es baja
+                        if (pet.cleanliness <= 20 && !lowStatWarningShown) {
+                            showNotification(`⚠️ ${pet.name} está muy sucio!`, true);
+                            lowStatWarningShown = true;
+                        }
+                        
                         if (currentSelectedPet?.id === pet.id) {
                             showSelectedPetModal(pet);
                         }
-
+                        
                         renderPets();
                     }
                     cleanlinessDecreaseQueue.push(petId);
                 }
-            }, 3000); // Intervalo general de 3 segundos
+            }, 4000); // Intervalo general de 4 segundos
         }
-        
+
         // Renderizar mascotas
         function renderPets() {
             petsContainer.innerHTML = '';
@@ -1098,14 +1134,6 @@
                 petImage.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('text/plain', pet.id);
                 });
-                
-                // Iniciar temporizadores si no existen
-                if (!hungerIntervals[pet.id]) {
-                    startHungerDecrease(pet.id);
-                }
-                if (!cleanlinessIntervals[pet.id]) {
-                    startCleanlinessDecrease(pet.id);
-                }
                 
                 // Event listener para mostrar modal al hacer clic
                 petCard.addEventListener('click', () => {
@@ -1306,6 +1334,10 @@
             renderPets();
             renderRooms();
             
+            // Iniciar los intervalos globales
+            startGlobalHungerDecrease();
+            startGlobalCleanlinessDecrease();
+            
             // Event listeners
             singleGachaBtn.addEventListener('click', () => playGacha(1));
             multiGachaBtn.addEventListener('click', () => playGacha(5));
@@ -1329,10 +1361,6 @@
             
             // Configurar drag and drop global
             document.addEventListener('dragover', (e) => e.preventDefault());
-            
-            // Iniciar disminución de stats con retraso aleatorio para cada mascota
-            startGlobalHungerDecrease();
-            startGlobalCleanlinessDecrease();
         }
 
         initGame();
